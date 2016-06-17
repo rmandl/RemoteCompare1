@@ -1,0 +1,2 @@
+# RemoteCompare1
+Verzeichnisvergleich
