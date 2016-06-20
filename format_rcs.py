@@ -28,7 +28,7 @@ def isRCS(filename):
     try:
         temp = open(filename,'rt').readline()
         tempcol = temp.split('\t')
-        if int(tempcol[0])>20110000 and int(tempcol[1])<240001 and float(tempcol[2].replace(',','.'))>3376684800:
+        if not (int(tempcol[0])>20110000 and int(tempcol[1])<240001 and float(tempcol[2].replace(',','.'))>3376684800):
             return False
     except:
         return False
@@ -43,17 +43,55 @@ def readRCS(filename, headonly=False, **kwargs):
 
     """
 
+    # Initialize contents of DataStream object
+    stream = DataStream()
+    if stream.header == {}:
+        headers = {} 
+        print('Header neu')
+    else:
+        headers = stream.header
+        print('Header vorhanden',headers)
+    ndlist = [np.asarray([]) for key in KEYLIST]
+
     # typical keyword arguments - free to extend
+
+    # selection of signals
+    signalsstr = kwargs.get('signals')
+    if signalsstr is None:
+        # no signals given - taking as much as possible
+        signalsstr = "1-"+str(len(NUMKEYLIST))
+    try:
+        # produce an array of signal numbers
+        signalsarray = []
+        sigranges = signalsstr.split(',')
+        for sig in sigranges:
+            sigchan = sig.split('-')
+            if len(sigchan) == 1:
+                # a single number
+                signalsarray.append(int(sigchan[0]))
+            elif len(sigchan) == 2:
+                # a range of signals
+                for s in range(int(sigchan[0]),int(sigchan[1])+1):
+                    signalsarray.append(s)
+            else:
+                # something went wrong
+                print('errorhandling!!')
+    except:
+        print('could not create an array of signal numbers')
+
+    # provide a fieldpoint name, e.g. if it is not part of the filename any more
+    nameFP = kwargs.get('nameFP')
+    
+    # select FPs, e.g. if there are RCS files from different FieldPoints
+    FP = kwargs.get('FP')
+    headers['FP'] = FP
+
+    # time range
     starttime = kwargs.get('starttime')
     endtime = kwargs.get('endtime')
 
     getfile = True
     gethead = True
-
-    # Initialize contents of DataStream object
-    stream = DataStream()
-    headers = {}
-    ndlist = [np.asarray([]) for key in KEYLIST]
 
     theday = extractDateFromString(filename.replace('_','-'))
     try:
@@ -67,17 +105,31 @@ def readRCS(filename, headonly=False, **kwargs):
         # Date format not recognized. Need to read all files
         getfile = True
 
+
+    if nameFP is None:
+        try:
+            fpaux = filename.split('-GENLOG_')
+            if len(fpaux) == 2 and not fpaux[0] == '':
+                FPname = fpaux[0]
+        except:
+            print('errorhandling!')
+
+
     if getfile:
 
         fh = open(filename, 'rt')
         print ("filename: ",filename)
+        if nameFP is None:
+            try:
+                fpaux = filename.split('-GENLOG_')
+                if len(fpaux) == 2 and not fpaux[0] == '':
+                    FPname = fpaux[0]
+            except:
+                print('errorhandling!')
+        print('FP:',FPname)
 
-        for line in fh:
-            colsstr = line.split('\t')
 
-
-
-    print ("Hi Richard, this is the skeleton to insert your code")
+#    print ("Hi Richard, this is the skeleton to insert your code")
 
     ndarray = np.asarray(ndlist)
     return DataStream([LineStruct()], headers, ndarray)
