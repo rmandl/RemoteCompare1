@@ -51,7 +51,9 @@ def readRCS(filename, headonly=False, **kwargs):
     else:
         headers = stream.header
         print('Header vorhanden',headers)
-    ndlist = [np.asarray([]) for key in KEYLIST]
+    # ndlist = [np.asarray([]) for key in KEYLIST]
+    # wie befuellt man das?
+    # Loesung unten bei signalsarray
 
     # typical keyword arguments - free to extend
 
@@ -76,8 +78,15 @@ def readRCS(filename, headonly=False, **kwargs):
             else:
                 # something went wrong
                 print('errorhandling!!')
+        # cut if necessary        
+        if len(signalsarray) > len(NUMKEYLIST):
+            signalsarray = signalsarray[0:len(NUMKEYLIST)]
     except:
         print('could not create an array of signal numbers')
+
+    ndlist = [ [] for i in range(len(signalsarray)+1) ]
+
+    print(signalsarray)
 
     # provide a fieldpoint name, e.g. if it is not part of the filename any more
     nameFP = kwargs.get('nameFP')
@@ -85,6 +94,17 @@ def readRCS(filename, headonly=False, **kwargs):
     # select FPs, e.g. if there are RCS files from different FieldPoints
     FP = kwargs.get('FP')
     headers['FP'] = FP
+
+    # da fehlt noch Einiges - haengt davon ab, ob ein Header bereits existiert
+    nameFPflag = False
+    if not nameFP is None:
+        nameFPflag = True
+
+    # check timestamps (RCS calculates time in format YYYYMMDD  hhmmss  from LabView timestamp
+    checktimestamps = kwargs.get('checktimestamps')
+    # default to check timestamps, this should be changed when data has been proofed correct
+    if checktimestamps is None:
+        checktimestamps = True
 
     # time range
     starttime = kwargs.get('starttime')
@@ -105,28 +125,50 @@ def readRCS(filename, headonly=False, **kwargs):
         # Date format not recognized. Need to read all files
         getfile = True
 
+    # extract FPs name from filename
+    try:
+        fpaux = filename.split('-GENLOG_')
+        if len(fpaux) == 2 and not fpaux[0] == '':
+            FPname = fpaux[0]
+        else:
+            FPname=''
+    except:
+        FPname=''
 
-    if nameFP is None:
-        try:
-            fpaux = filename.split('-GENLOG_')
-            if len(fpaux) == 2 and not fpaux[0] == '':
-                FPname = fpaux[0]
-        except:
-            print('errorhandling!')
 
+#    if nameFP is None:
+#...
+    once = True
 
     if getfile:
-
         fh = open(filename, 'rt')
-        print ("filename: ",filename)
-        if nameFP is None:
-            try:
-                fpaux = filename.split('-GENLOG_')
-                if len(fpaux) == 2 and not fpaux[0] == '':
-                    FPname = fpaux[0]
-            except:
-                print('errorhandling!')
-        print('FP:',FPname)
+        csvReader = csv.reader(fh)
+#   TRENNZEICHEN IST ',' HIER BRAUCHT MAN tabs
+        for elem in csvReader:
+            if elem == []:
+                print("blank line !?")
+            else:
+                if once:
+                    print(elem)
+                    print(elem[0],elem[1],elem[2])
+                try:
+                    calculatedTimestamp = elem[0][0:4]+'-'+elem[0][4:6]+'-'+elem[0][6:8]+'T'+elem[1][0:2]+':'+elem[1][2:4]+':'+elem[1][4:6]
+                    if once:
+                        print(calculatedTimestamp)
+                        once = False
+                except(ValueError):
+                    print('no valid timestamp')
+                if checktimestamps:
+                    try:
+                        LabViewTimestamp = datetime(1904,1,1,0,0) + timedelta(seconds=float(elem[2]))
+                    except(ValueError):
+                        pass
+
+
+
+
+
+
 
 
 #    print ("Hi Richard, this is the skeleton to insert your code")
