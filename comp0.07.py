@@ -174,6 +174,7 @@ class App:
         self.tree.bind("<Double-1>", self.OnClick)
         self.tree.bind("<ButtonPress>", self.maus)
         self.tree.bind("<Configure>", self.winsize)
+	self.tree.bind("<Button-3>", self.maus)
 # naechste Zeile geht nicht... (tag_configure) 
         self.tree.tag_configure('rttk', background="red")
         print(self.lliste)
